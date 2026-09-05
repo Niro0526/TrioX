@@ -1,0 +1,59 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+using int64 = long long;
+using u64 = unsigned long long;
+
+int k, q;
+
+// Map character to digit value
+int charToDigit(char c) {
+    if (c >= '0' && c <= '9') return c - '0';
+    if (c >= 'A' && c <= 'Z') return c - 'A' + 10;
+    return c - 'a' + 36;
+}
+
+// Compute S_i = sum of digits of i in base k mod k
+int computeS(int64 i) {
+    int sum = 0;
+    while (i > 0) {
+        sum += (i % k);
+        i /= k;
+    }
+    return sum % k;
+}
+
+// Precompute S for small values
+const int PRECOMP = 2000000;
+vector<int> S_precomp;
+
+void precompute() {
+    S_precomp.resize(PRECOMP);
+    S_precomp[0] = 0;
+    for (int i = 1; i < PRECOMP; i++) {
+        S_precomp[i] = computeS(i);
+    }
+}
+
+// Get S_i efficiently
+int getS(int64 i) {
+    if (i < PRECOMP) return S_precomp[i];
+    int sum = 0;
+    while (i > 0) {
+        sum += (i % k);
+        i /= k;
+    }
+    return sum % k;
+}
+
+// Recursive function to count matches of pattern in S[l..r]
+// Uses the recursive structure: S_{b*k^m + x} = (S_b + S_x) % k
+int64 countMatches(int64 l, int64 r, const vector<int>& pat, int patPos, int64 offset) {
+    int n = pat.size();
+    if (patPos >= n) return 1;
+    if (l > r) return 0;
+    
+    // If we're at the last few positions, brute force
+    if (r - l + 1 <= 100000) {
+        int64 count = 0;
+        for (int64 p = l; p <= r - (n - patPos)
