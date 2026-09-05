@@ -1,0 +1,36 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    int T;
+    cin >> T;
+
+    while (T--) {
+        int n;
+        cin >> n;
+
+        vector<long long> p(n);
+        for (auto &x : p) cin >> x;
+
+        long long reach = 0;   // 0-based: tower 1 is index 0
+
+        for (int i = 0; i < n; i++) {
+            // Cannot even reach this tower
+            if (i > reach)
+                break;
+
+            // Already reached the final tower
+            if (reach >= n - 1)
+                break;
+
+            reach = max(reach, (long long)i + p[i]);
+        }
+
+        cout << (reach >= n - 1 ? "YES" : "NO") << '\n';
+    }
+
+    return 0;
+}

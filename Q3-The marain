@@ -1,0 +1,232 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+using int64 = long long;
+using u64 = unsigned long long;
+
+int k, q;
+vector<int> pattern;
+
+// Map character to digit value
+int charToDigit(char c) {
+    if (c >= '0' && c <= '9') return c - '0';
+    if (c >= 'A' && c <= 'Z') return c - 'A' + 10;
+    return c - 'a' + 36;
+}
+
+// Compute S_i = sum of digits of i in base k mod k
+int computeS(int64 i) {
+    int sum = 0;
+    while (i > 0) {
+        sum += (i % k);
+        i /= k;
+    }
+    return sum % k;
+}
+
+// Precompute S for small values
+const int PRECOMP = 1000000;
+vector<int> S_precomp;
+
+void precompute() {
+    S_precomp.resize(PRECOMP);
+    for (int i = 1; i < PRECOMP; i++) {
+        S_precomp[i] = computeS(i);
+    }
+}
+
+// Get S_i efficiently using precomputation
+int getS(int64 i) {
+    if (i < PRECOMP) return S_precomp[i];
+    int sum = 0;
+    while (i > 0) {
+        sum += (i % k);
+        i /= k;
+    }
+    return sum % k;
+}
+
+// Count occurrences using rolling hash
+class RollingHash {
+    vector<u64> hash, pow;
+    u64 base;
+    
+public:
+    RollingHash(const vector<int>& arr, u64 base = 1000003) : base(base) {
+        int n = arr.size();
+        hash.resize(n + 1);
+        pow.resize(n + 1);
+        pow[0] = 1;
+        for (int i = 0; i < n; i++) {
+            hash[i + 1] = hash[i] * base + (arr[i] + 1);
+            pow[i + 1] = pow[i] * base;
+        }
+    }
+    
+    u64 getHash(int l, int r) {
+        if (l > r) return 0;
+        return hash[r + 1] - hash[l] * pow[r - l + 1];
+    }
+};
+
+// Convert string T to vector of digits
+vector<int> parsePattern(const string& T) {
+    vector<int> pat;
+    for (char c : T) {
+        pat.push_back(charToDigit(c));
+    }
+    return pat;
+}
+
+// Count occurrences in [l, r] using divide and conquer
+int64 countOccurrences(int64 l, int64 r, const vector<int>& pat, const vector<int>& patHash) {
+    int n = pat.size();
+    if (n > r - l + 1) return 0;
+    
+    int64 count = 0;
+    int64 maxStart = r - n + 1;
+    
+    // If range is small, brute force
+    if (maxStart - l < 5000) {
+        for (int64 p = l; p <= maxStart; p++) {
+            bool match = true;
+            for (int j = 0; j < n; j++) {
+                if (getS(p + j) != pat[j]) {
+                    match = false;
+                    break;
+                }
+            }
+            if (match) count++;
+        }
+        return count;
+    }
+    
+    // For larger ranges, use periodicity
+    // The sequence S has period k^(num_digits) with some structure
+    // We'll use a different approach: process in blocks
+    
+    // Find the smallest power of k that covers the range
+    int64 blockSize = 1;
+    while (blockSize < n) blockSize *= k;
+    
+    // Process in blocks
+    int64 start = l;
+    while (start <= maxStart) {
+        int64 end = min(start + blockSize * k, maxStart + 1);
+        int64 blockLen = end - start;
+        
+        if (blockLen <= 100000) {
+            // Brute force this block
+            for (int64 p = start; p < end; p++) {
+                bool match = true;
+                for (int j = 0; j < n; j++) {
+                    if (getS(p + j) != pat[j]) {
+                        match = false;
+                        break;
+                    }
+                }
+                if (match) count++;
+            }
+        } else {
+            // For very large blocks, find the pattern of S in this block
+            // S_{b*k^m + x} = S_b + S_x mod k (when x < k^m)
+            // This allows block-level matching
+            int64 power = 1;
+            int m = 0;
+            while (power * k <= blockLen) {
+                power *= k;
+                m++;
+            }
+            
+            // For each offset, compute the pattern of S values
+            int64 baseBlock = start / power;
+            int64 offset = start % power;
+            
+            // If the block alignment is nice, we can use periodicity
+            if (offset == 0 && blockLen >= power * k) {
+                // The block is aligned with the period
+                // S_{base*power + x} = (S_base + S_x) mod k
+                // We can match pattern T against this structure
+                
+                // Compute S_base
+                int baseVal = getS(baseBlock);
+                
+                // For each possible alignment within the block
+                for (int64 p = start; p <= end - n; p += power) {
+                    bool match = true;
+                    for (int j = 0; j < n; j++) {
+                        int idx = j;
+                        int val = (baseVal + getS(idx)) % k;
+                        if (val != pat[j]) {
+                            match = false;
+                            break;
+                        }
+                    }
+                    if (match) count++;
+                }
+                
+                // Check partial blocks at the end
+                for (int64 p = end - power; p <= end - n; p++) {
+                    if (p >= start) {
+                        bool match = true;
+                        for (int j = 0; j < n; j++) {
+                            if (getS(p + j) != pat[j]) {
+                                match = false;
+                                break;
+                            }
+                        }
+                        if (match) count++;
+                    }
+                }
+            } else {
+                // Non-aligned block, process sub-blocks
+                // Split into smaller blocks
+                for (int64 p = start; p < end; p += power / 2) {
+                    int64 nextEnd = min(p + power / 2, end);
+                    int64 blockLen2 = nextEnd - p;
+                    
+                    for (int64 pp = p; pp < nextEnd - n + 1; pp++) {
+                        bool match = true;
+                        for (int j = 0; j < n; j++) {
+                            if (getS(pp + j) != pat[j]) {
+                                match = false;
+                                break;
+                            }
+                        }
+                        if (match) count++;
+                    }
+                }
+            }
+        }
+        
+        start = end;
+    }
+    
+    return count;
+}
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(nullptr);
+    
+    cin >> k >> q;
+    
+    // Precompute S for small values
+    precompute();
+    
+    while (q--) {
+        int64 l, r;
+        int n;
+        string T;
+        cin >> l >> r >> n;
+        cin >> T;
+        
+        vector<int> pat = parsePattern(T);
+        
+        // Count occurrences
+        int64 ans = countOccurrences(l, r, pat, {});
+        cout << ans << '\n';
+    }
+    
+    return 0;
+}
