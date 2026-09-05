@@ -1,0 +1,110 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+// Fenwick tree for counting inversions
+struct Fenwick {
+    int n;
+    vector<int> bit;
+    Fenwick(int n) : n(n), bit(n + 1, 0) {}
+    
+    void update(int idx, int val) {
+        idx++;
+        while (idx <= n) {
+            bit[idx] += val;
+            idx += idx & -idx;
+        }
+    }
+    
+    int query(int idx) {
+        idx++;
+        int sum = 0;
+        while (idx > 0) {
+            sum += bit[idx];
+            idx -= idx & -idx;
+        }
+        return sum;
+    }
+};
+
+long long countInversions(const string& source, const string& target) {
+    int n = source.size();
+    if (n <= 1) return 0;
+    
+    // Map each character in target to its positions
+    vector<queue<int>> positions(2); // 0 for C, 1 for M
+    for (int i = 0; i < n; i++) {
+        positions[target[i] == 'M' ? 1 : 0].push(i);
+    }
+    
+    // Create the permutation array
+    vector<int> perm(n);
+    for (int i = 0; i < n; i++) {
+        int idx = (source[i] == 'M' ? 1 : 0);
+        if (positions[idx].empty()) return -1;
+        perm[i] = positions[idx].front();
+        positions[idx].pop();
+    }
+    
+    // Count inversions using Fenwick tree
+    Fenwick bit(n);
+    long long inversions = 0;
+    for (int i = n - 1; i >= 0; i--) {
+        inversions += bit.query(perm[i] - 1);
+        bit.update(perm[i], 1);
+    }
+    
+    return inversions;
+}
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(nullptr);
+    
+    int T;
+    cin >> T;
+    
+    while (T--) {
+        int n;
+        string a, b;
+        cin >> n >> a >> b;
+        
+        // Characters at even positions can only move to even positions
+        // Characters at odd positions can only move to odd positions
+        string a_even, a_odd, b_even, b_odd;
+        
+        for (int i = 0; i < n; i++) {
+            if (i % 2 == 0) {
+                a_even += a[i];
+                b_even += b[i];
+            } else {
+                a_odd += a[i];
+                b_odd += b[i];
+            }
+        }
+        
+        // Check if transformation is possible
+        string a_even_sorted = a_even, a_odd_sorted = a_odd;
+        string b_even_sorted = b_even, b_odd_sorted = b_odd;
+        sort(a_even_sorted.begin(), a_even_sorted.end());
+        sort(a_odd_sorted.begin(), a_odd_sorted.end());
+        sort(b_even_sorted.begin(), b_even_sorted.end());
+        sort(b_odd_sorted.begin(), b_odd_sorted.end());
+        
+        if (a_even_sorted != b_even_sorted || a_odd_sorted != b_odd_sorted) {
+            cout << -1 << '\n';
+            continue;
+        }
+        
+        // Count inversions for even and odd positions separately
+        long long even_ops = countInversions(a_even, b_even);
+        long long odd_ops = countInversions(a_odd, b_odd);
+        
+        if (even_ops == -1 || odd_ops == -1) {
+            cout << -1 << '\n';
+        } else {
+            cout << even_ops + odd_ops << '\n';
+        }
+    }
+    
+    return 0;
+}
