@@ -1,0 +1,63 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+vector<int> buildPrefixFunction(const string& pattern) {
+    int m = pattern.length();
+    vector<int> pi(m, 0);
+    
+    for (int i = 1; i < m; i++) {
+        int j = pi[i - 1];
+        while (j > 0 && pattern[i] != pattern[j]) {
+            j = pi[j - 1];
+        }
+        if (pattern[i] == pattern[j]) {
+            j++;
+        }
+        pi[i] = j;
+    }
+    
+    return pi;
+}
+
+int countOccurrences(const string& text, const string& pattern) {
+    int n = text.length();
+    int m = pattern.length();
+    
+    if (m > n) {
+        return 0;
+    }
+    
+    vector<int> pi = buildPrefixFunction(pattern);
+    int count = 0;
+    int j = 0; // length of current match with pattern
+    
+    for (int i = 0; i < n; i++) {
+        while (j > 0 && text[i] != pattern[j]) {
+            j = pi[j - 1];
+        }
+        if (text[i] == pattern[j]) {
+            j++;
+        }
+        if (j == m) {
+            // Found a match at position i - m + 1
+            count++;
+            // For overlapping matches, continue with the prefix function
+            j = pi[j - 1];
+        }
+    }
+    
+    return count;
+}
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
+    
+    string T, P;
+    cin >> T >> P;
+    
+    int result = countOccurrences(T, P);
+    cout << result << "\n";
+    
+    return 0;
+}

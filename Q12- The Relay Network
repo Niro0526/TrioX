@@ -1,0 +1,86 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 105;
+const int INF = 1e9;
+
+int N, M;
+vector<vector<int>> capacity; // adjacency matrix for capacities
+vector<vector<int>> adj;      // adjacency list for BFS
+
+int bfs(int s, int t, vector<int>& parent) {
+    fill(parent.begin(), parent.end(), -1);
+    parent[s] = s;
+    queue<pair<int, int>> q;
+    q.push({s, INF});
+    
+    while (!q.empty()) {
+        int u = q.front().first;
+        int flow = q.front().second;
+        q.pop();
+        
+        for (int v : adj[u]) {
+            if (parent[v] == -1 && capacity[u][v] > 0) {
+                parent[v] = u;
+                int new_flow = min(flow, capacity[u][v]);
+                if (v == t) {
+                    return new_flow;
+                }
+                q.push({v, new_flow});
+            }
+        }
+    }
+    return 0;
+}
+
+int maxFlow(int s, int t) {
+    int flow = 0;
+    vector<int> parent(N + 1);
+    
+    while (true) {
+        int new_flow = bfs(s, t, parent);
+        if (new_flow == 0) break;
+        
+        // Update capacities along the path
+        int v = t;
+        while (v != s) {
+            int u = parent[v];
+            capacity[u][v] -= new_flow;
+            capacity[v][u] += new_flow;
+            v = u;
+        }
+        flow += new_flow;
+    }
+    
+    return flow;
+}
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
+    
+    cin >> N >> M;
+    
+    // Initialize capacity matrix
+    capacity.assign(N + 1, vector<int>(N + 1, 0));
+    adj.assign(N + 1, {});
+    
+    // Read edges
+    for (int i = 0; i < M; i++) {
+        int u, v, c;
+        cin >> u >> v >> c;
+        
+        // If there are multiple edges, add their capacities
+        if (capacity[u][v] == 0) {
+            adj[u].push_back(v);
+            adj[v].push_back(u); // for residual graph
+        }
+        capacity[u][v] += c;
+    }
+    
+    // Calculate max flow from station 1 to station N
+    int result = maxFlow(1, N);
+    cout << result << "\n";
+    
+    return 0;
+}

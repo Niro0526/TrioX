@@ -1,0 +1,57 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+using int64 = long long;
+
+vector<vector<pair<int, int64>>> adj; // adjacency list: (neighbor, weight)
+
+pair<int, int64> dfs(int node, int parent) {
+    int farthestNode = node;
+    int64 maxDist = 0;
+    
+    for (auto [neighbor, weight] : adj[node]) {
+        if (neighbor != parent) {
+            auto [childNode, childDist] = dfs(neighbor, node);
+            childDist += weight;
+            if (childDist > maxDist) {
+                maxDist = childDist;
+                farthestNode = childNode;
+            }
+        }
+    }
+    
+    return {farthestNode, maxDist};
+}
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
+    
+    int N;
+    cin >> N;
+    
+    if (N == 1) {
+        cout << 0 << "\n";
+        return 0;
+    }
+    
+    adj.assign(N + 1, {});
+    
+    for (int i = 0; i < N - 1; i++) {
+        int a, b;
+        int64 w;
+        cin >> a >> b >> w;
+        adj[a].push_back({b, w});
+        adj[b].push_back({a, w});
+    }
+    
+    // First DFS: Find the farthest node from node 1
+    auto [nodeA, distA] = dfs(1, -1);
+    
+    // Second DFS: Find the farthest node from nodeA
+    auto [nodeB, diameter] = dfs(nodeA, -1);
+    
+    cout << diameter << "\n";
+    
+    return 0;
+}

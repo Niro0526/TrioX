@@ -1,0 +1,50 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(nullptr);
+    
+    int T;
+    cin >> T;
+    
+    while (T--) {
+        string s;
+        cin >> s;
+        
+        int n = s.length();
+        int maxLen = 0;
+        
+        // Convert D to +1, R to -1
+        vector<int> prefix(n + 1, 0);
+        for (int i = 0; i < n; i++) {
+            prefix[i + 1] = prefix[i] + (s[i] == 'D' ? 1 : -1);
+        }
+        
+        // For each possible starting position
+        // Find the longest valid substring starting at i
+        for (int i = 0; i < n; i++) {
+            // We need prefix[j] - prefix[i] >= 0 for all j > i
+            // and prefix[j] - prefix[i] = 0 at the end
+            
+            // Track the minimum prefix value after i
+            int minVal = prefix[i];
+            bool valid = true;
+            
+            for (int j = i + 1; j <= n; j++) {
+                // If prefix goes below the starting value, invalid
+                if (prefix[j] < prefix[i]) {
+                    break;
+                }
+                // If we return to the starting value, we have a valid substring
+                if (prefix[j] == prefix[i]) {
+                    maxLen = max(maxLen, j - i);
+                }
+            }
+        }
+        
+        cout << maxLen << '\n';
+    }
+    
+    return 0;
+}

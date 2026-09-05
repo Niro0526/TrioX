@@ -1,0 +1,111 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+using int64 = long long;
+
+struct Block {
+    int64 need;
+    int64 gain;
+    int len;
+};
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    int T;
+    cin >> T;
+
+    while (T--) {
+        int n;
+        int64 x;
+        cin >> n >> x;
+
+        vector<vector<int64>> a(n), b(n);
+        vector<int> m(n);
+
+        for (int i = 0; i < n; ++i) {
+            cin >> m[i];
+            a[i].resize(m[i]);
+            b[i].resize(m[i]);
+            for (int j = 0; j < m[i]; ++j) cin >> a[i][j];
+            for (int j = 0; j < m[i]; ++j) cin >> b[i][j];
+        }
+
+        vector<vector<Block>> blocks(n);
+        for (int i = 0; i < n; ++i) {
+            int64 cur = 0;
+            int64 maxDef = 0;
+            int len = 0;
+
+            for (int j = 0; j < m[i]; ++j) {
+                int64 delta = b[i][j] - a[i][j];
+                int64 need = a[i][j] - cur;
+                maxDef = max(maxDef, need);
+
+                cur += delta;
+                len++;
+
+                if (cur > 0) {
+                    blocks[i].push_back({maxDef, cur, len});
+                    cur = 0;
+                    maxDef = 0;
+                    len = 0;
+                }
+            }
+        }
+
+        vector<int> taken(n, 0);
+        vector<int> nextBlock(n, 0);
+        priority_queue<pair<int64, int>, vector<pair<int64, int>>, greater<pair<int64, int>>> pq;
+
+        for (int i = 0; i < n; ++i) {
+            if (!blocks[i].empty()) {
+                pq.push({blocks[i][0].need, i});
+            }
+        }
+
+        int64 capital = x;
+
+        while (!pq.empty()) {
+            auto [need, idx] = pq.top();
+            pq.pop();
+
+            if (need > capital) break;
+
+            Block &blk = blocks[idx][nextBlock[idx]];
+            capital += blk.gain;
+            taken[idx] += blk.len;
+            nextBlock[idx]++;
+
+            if (nextBlock[idx] < (int)blocks[idx].size()) {
+                pq.push({blocks[idx][nextBlock[idx]].need, idx});
+            }
+        }
+
+        int bestHeight = 0, bestIdx = 1;
+
+        for (int i = 0; i < n; ++i) {
+            int64 curCap = capital;
+            int cnt = taken[i];
+
+            for (int j = taken[i]; j < m[i]; ++j) {
+                if (curCap >= a[i][j]) {
+                    curCap += (b[i][j] - a[i][j]);
+                    cnt++;
+                } else {
+                    break;
+                }
+            }
+
+            if (cnt > bestHeight) {
+                bestHeight = cnt;
+                bestIdx = i + 1;
+            }
+        }
+
+        cout << bestHeight << ' ' << bestIdx << '\n';
+    }
+
+    return 0;
+}

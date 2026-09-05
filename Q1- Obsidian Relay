@@ -1,0 +1,107 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    int t;
+    cin >> t;
+
+    while (t--) {
+        int n, r;
+        cin >> n >> r;
+
+        // n must be a power of 2.
+        if ((n & (n - 1)) != 0) {
+            cout << -1 << '\n';
+            continue;
+        }
+
+        // For n = 2, a 2x2 Latin square always has XOR 0.
+        if (n == 2 && r != 0) {
+            cout << -1 << '\n';
+            continue;
+        }
+
+        // Simple construction for r = 0.
+        if (r == 0) {
+            for (int i = 0; i < n; ++i) {
+                for (int j = 0; j < n; ++j) {
+                    if (j) cout << ' ';
+                    cout << (i ^ j);
+                }
+                cout << '\n';
+            }
+            continue;
+        }
+
+        /*
+            r != 0, n >= 4.
+
+            Pair x with x ^ r.
+            Choose n/4 complete pairs for O.
+            Remaining values form E.
+        */
+
+        vector<bool> inO(n, false);
+        vector<bool> used(n, false);
+
+        int pairsTaken = 0;
+
+        for (int x = 0; x < n; ++x) {
+            if (used[x]) continue;
+
+            int y = x ^ r;
+
+            used[x] = true;
+            used[y] = true;
+
+            if (pairsTaken < n / 4) {
+                inO[x] = true;
+                inO[y] = true;
+                ++pairsTaken;
+            }
+        }
+
+        vector<int> E, O;
+
+        for (int x = 0; x < n; ++x) {
+            if (inO[x])
+                O.push_back(x);
+            else
+                E.push_back(x);
+        }
+
+        // Build permutation p.
+        vector<int> p(n);
+
+        int ep = 0, op = 0;
+
+        for (int i = 0; i < n; ++i) {
+            if (i % 2 == 0) {
+                p[i] = E[ep++];
+            } else {
+                p[i] = O[op++];
+            }
+        }
+
+        // Construct and print the matrix.
+        for (int i = 0; i < n; ++i) {
+            for (int j = 0; j < n; ++j) {
+                if (j) cout << ' ';
+
+                int value = p[i] ^ p[j];
+
+                if ((i & 1) && (j & 1)) {
+                    value ^= r;
+                }
+
+                cout << value;
+            }
+            cout << '\n';
+        }
+    }
+
+    return 0;
+}

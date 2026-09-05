@@ -1,0 +1,131 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+struct Edge {
+    int u, v, w;
+};
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
+    
+    int N, M, S;
+    cin >> N >> M >> S;
+    
+    vector<Edge> edges(M);
+    for (int i = 0; i < M; i++) {
+        cin >> edges[i].u >> edges[i].v >> edges[i].w;
+    }
+    
+    const long long INF = 1e18;
+    vector<long long> dist(N + 1, INF);
+    vector<int> parent(N + 1, -1);
+    vector<int> parentWeight(N + 1, 0);
+    
+    dist[S] = 0;
+    int lastRelaxed = -1;
+    
+    // Bellman-Ford: N rounds
+    for (int round = 0; round < N; round++) {
+        bool relaxed = false;
+        lastRelaxed = -1;
+        
+        // Scan edges in input order
+        for (int i = 0; i < M; i++) {
+            int u = edges[i].u;
+            int v = edges[i].v;
+            int w = edges[i].w;
+            
+            if (dist[u] != INF && dist[u] + w < dist[v]) {
+                dist[v] = dist[u] + w;
+                parent[v] = u;
+                parentWeight[v] = w;
+                lastRelaxed = v;
+                relaxed = true;
+            }
+        }
+        
+        // If no relaxation happened, no negative cycle reachable from S
+        if (!relaxed) {
+            cout << "NO\n";
+            return 0;
+        }
+    }
+    
+    // If we're here, round N had a relaxation (lastRelaxed is set)
+    int x = lastRelaxed;
+    
+    // Follow predecessor links N more times
+    for (int i = 0; i < N; i++) {
+        x = parent[x];
+    }
+    
+    // Now x is guaranteed to be on a negative cycle
+    // Reconstruct the cycle
+    vector<int> cycle;
+    vector<int> cycleWeights;
+    int current = x;
+    int totalCost = 0;
+    
+    // Walk until we return to x
+    do {
+        cycle.push_back(current);
+        if (parent[current] != -1) {
+            cycleWeights.push_back(parentWeight[current]);
+            totalCost += parentWeight[current];
+        }
+        current = parent[current];
+    } while (current != x);
+    
+    // Add the starting hub to complete the cycle
+    cycle.push_back(x);
+    
+    // Reverse to get the correct order
+    reverse(cycle.begin(), cycle.end());
+    // Note: cycleWeights don't need reversal as we reversed the cycle
+    
+    // Reconstruct weights in the correct order
+    vector<int> correctWeights;
+    for (int i = 0; i < cycle.size() - 1; i++) {
+        // Find the edge from cycle[i] to cycle[i+1]
+        bool found = false;
+        for (const auto& edge : edges) {
+            if (edge.u == cycle[i] && edge.v == cycle[i+1]) {
+                // We need to find the specific edge that was used in the relaxation
+                // The parentWeight for cycle[i+1] should be the weight of the edge from cycle[i] to cycle[i+1]
+                // But since multiple edges may exist, we need to reconstruct carefully
+                // Let's use the parentWeight array
+                if (parent[cycle[i+1]] == cycle[i]) {
+                    correctWeights.push_back(parentWeight[cycle[i+1]]);
+                    found = true;
+                    break;
+                }
+            }
+        }
+        // If we didn't find the specific edge through parent pointers, find any edge
+        // Actually, since we're following parent pointers, we should be able to find it
+        if (!found) {
+            // This shouldn't happen if our reconstruction is correct
+            // But as a fallback, find any edge
+            for (const auto& edge : edges) {
+                if (edge.u == cycle[i] && edge.v == cycle[i+1]) {
+                    correctWeights.push_back(edge.w);
+                    found = true;
+                    break;
+                }
+            }
+        }
+    }
+    
+    // Calculate the total cost from the reconstructed weights
+    long long finalTotalCost = 0;
+    for (int w : correctWeights) {
+        finalTotalCost += w;
+    }
+    
+    // Output
+    cout << "YES\n";
+    cout << cycle.size() - 1 << " " << finalTotalCost << "\n";
+    
+    return 0;
+}

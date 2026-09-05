@@ -1,0 +1,66 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+using int64 = long long;
+
+string R_str;
+int64 dp[20][10][2]; // dp[pos][prev_digit][tight]
+
+int64 solveDP(int pos, int prev_digit, bool tight, bool started) {
+    if (pos == R_str.length()) {
+        return 1; // Reached end of number, valid
+    }
+    
+    if (!tight && started && dp[pos][prev_digit][0] != -1) {
+        return dp[pos][prev_digit][0];
+    }
+    
+    int limit = tight ? (R_str[pos] - '0') : 9;
+    int64 count = 0;
+    
+    for (int digit = 0; digit <= limit; digit++) {
+        if (!started) {
+            // Leading zeros: don't consider them as part of the number
+            if (digit == 0) {
+                count += solveDP(pos + 1, 0, tight && (digit == limit), false);
+            } else {
+                // First non-zero digit
+                count += solveDP(pos + 1, digit, tight && (digit == limit), true);
+            }
+        } else {
+            // Already started: check adjacent equality
+            if (digit != prev_digit) {
+                count += solveDP(pos + 1, digit, tight && (digit == limit), true);
+            }
+        }
+    }
+    
+    if (!tight && started) {
+        dp[pos][prev_digit][0] = count;
+    }
+    
+    return count;
+}
+
+int64 countUpTo(string s) {
+    R_str = s;
+    memset(dp, -1, sizeof(dp));
+    return solveDP(0, 0, true, false);
+}
+
+int64 countUpToInt(int64 x) {
+    return countUpTo(to_string(x));
+}
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
+    
+    int64 L, R;
+    cin >> L >> R;
+    
+    int64 result = countUpToInt(R) - countUpToInt(L - 1);
+    cout << result << "\n";
+    
+    return 0;
+}
